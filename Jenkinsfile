@@ -44,9 +44,22 @@ EOF
       steps {
         echo "📊 Linting with Flake8 and Pylint (warnings only)…"
         sh """
-          # Don’t fail on style issues—just report them
           docker run --rm $IMAGE:$TAG flake8 --exit-zero DBweb
           docker run --rm $IMAGE:$TAG pylint --exit-zero DBweb
+        """
+      }
+    }
+
+    stage('Security Scan') {
+      steps {
+        echo "🛡️  Scanning image for vulnerabilities (Trivy)…"
+        sh """
+          docker pull aquasec/trivy:latest
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest \
+             --exit-code 1 --severity HIGH,CRITICAL \
+             $IMAGE:$TAG
         """
       }
     }
