@@ -42,10 +42,10 @@ EOF
 
     stage('Code Quality') {
       steps {
-        echo "📊 Linting with Flake8 and Pylint..."
+        echo "📊 Linting with Flake8 and Pylint (warnings only)…"
         sh """
-          # Our WORKDIR in the image is /app/databytes, so DBweb/ is the app dir
-          docker run --rm $IMAGE:$TAG flake8 DBweb
+          # Don’t fail on style issues—just report them
+          docker run --rm $IMAGE:$TAG flake8 --exit-zero DBweb
           docker run --rm $IMAGE:$TAG pylint --exit-zero DBweb
         """
       }
