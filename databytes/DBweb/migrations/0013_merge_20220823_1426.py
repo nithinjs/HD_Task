@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('DBweb', '0010_project_projectstartdate'),
+        ('DBweb', '0010_project_projectenddate_project_projectstartdate'),
         ('DBweb', '0012_alter_project_leaderemail_and_more'),
     ]
 
