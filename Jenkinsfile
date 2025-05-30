@@ -25,17 +25,19 @@ pipeline {
       steps {
         echo "🚦 Smoke-testing the container…"
         sh """
-          # Remove any old 'smoke' container
+          # Clean up any old smoke container
           docker rm -f smoke || true
 
-          # Start fresh on the host network
-          docker run --rm -d --network host --name smoke $IMAGE:$TAG
+          # Start the container (no port mapping needed)
+          docker run --rm -d --name smoke $IMAGE:$TAG
+
+          # Wait for Gunicorn to start
           sleep 5
 
-          # Hit the health endpoint
-          curl --fail http://localhost:8000/ || (docker logs smoke && exit 1)
+          # Exec inside the container to hit localhost:8000
+          docker exec smoke curl --fail http://localhost:8000/ || (docker logs smoke && exit 1)
 
-          # Stop (and auto-remove) the smoke container
+          # Tear down the container
           docker stop smoke || true
         """
       }
