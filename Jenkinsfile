@@ -23,9 +23,10 @@ pipeline {
 
     stage('Smoke Test') {
       steps {
-        echo "🚦 Smoke-testing the container..."
+        echo "🚦 Smoke-testing the container…"
         sh """
-          docker run --rm -d -p 8000:8000 --name smoke $IMAGE:$TAG
+          # Run on host network so Jenkins can curl localhost
+          docker run --rm -d --network host --name smoke $IMAGE:$TAG
           sleep 5
           curl --fail http://localhost:8000/ || (docker logs smoke && exit 1)
           docker stop smoke
@@ -37,10 +38,7 @@ pipeline {
       steps {
         echo "📊 Linting with Flake8 and Pylint..."
         sh """
-          # Flake8 will catch style issues:
           docker run --rm $IMAGE:$TAG flake8 databytes/DBweb
-
-          # Pylint will report code smells and complexity:
           docker run --rm $IMAGE:$TAG pylint --exit-zero databytes/DBweb
         """
       }
