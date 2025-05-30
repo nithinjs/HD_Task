@@ -25,11 +25,18 @@ pipeline {
       steps {
         echo "🚦 Smoke-testing the container…"
         sh """
-          # Run on host network so Jenkins can curl localhost
+          # Remove any old 'smoke' container
+          docker rm -f smoke || true
+
+          # Start fresh on the host network
           docker run --rm -d --network host --name smoke $IMAGE:$TAG
           sleep 5
+
+          # Hit the health endpoint
           curl --fail http://localhost:8000/ || (docker logs smoke && exit 1)
-          docker stop smoke
+
+          # Stop (and auto-remove) the smoke container
+          docker stop smoke || true
         """
       }
     }
