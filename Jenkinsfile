@@ -25,26 +25,16 @@ pipeline {
       steps {
         echo "🚦 Smoke-testing the container…"
         sh """
-          # clean up any old smoke container
           docker rm -f smoke || true
-
-          # start your app (no port mapping needed for this approach)
           docker run --rm -d --name smoke $IMAGE:$TAG
-
-          # give Gunicorn a moment to spin up
           sleep 5
-
-          # use Python inside the container to hit localhost:8000
           docker exec smoke python - << 'EOF'
 import urllib.request, sys
 try:
-    status = urllib.request.urlopen('http://localhost:8000').getcode()
-    sys.exit(0 if status == 200 else 1)
-except Exception:
+    sys.exit(0 if urllib.request.urlopen('http://localhost:8000').getcode()==200 else 1)
+except:
     sys.exit(1)
 EOF
-
-          # tear it down
           docker stop smoke || true
         """
       }
@@ -54,8 +44,9 @@ EOF
       steps {
         echo "📊 Linting with Flake8 and Pylint..."
         sh """
-          docker run --rm $IMAGE:$TAG flake8 databytes/DBweb
-          docker run --rm $IMAGE:$TAG pylint --exit-zero databytes/DBweb
+          # Our WORKDIR in the image is /app/databytes, so DBweb/ is the app dir
+          docker run --rm $IMAGE:$TAG flake8 DBweb
+          docker run --rm $IMAGE:$TAG pylint --exit-zero DBweb
         """
       }
     }
