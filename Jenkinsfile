@@ -28,12 +28,10 @@ pipeline {
           docker rm -f smoke || true
           docker run --rm -d --name smoke $IMAGE:$TAG
           sleep 5
+          # simple HTTP check inside the container
           docker exec smoke python - << 'EOF'
 import urllib.request, sys
-try:
-    sys.exit(0 if urllib.request.urlopen('http://localhost:8000').getcode()==200 else 1)
-except:
-    sys.exit(1)
+sys.exit(0 if urllib.request.urlopen('http://localhost:8000').getcode()==200 else 1)
 EOF
           docker stop smoke || true
         """
@@ -54,12 +52,16 @@ EOF
       steps {
         echo "🛡️  Scanning image for vulnerabilities (Trivy)…"
         sh """
+          # pull the latest Trivy scanner
           docker pull aquasec/trivy:latest
+
+          # run the 'image' subcommand *before* the flags
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
-            aquasec/trivy:latest \
-             --exit-code 1 --severity HIGH,CRITICAL \
-             $IMAGE:$TAG
+            aquasec/trivy:latest image \
+              --exit-code 1 \
+              --severity HIGH,CRITICAL \
+              $IMAGE:$TAG
         """
       }
     }
