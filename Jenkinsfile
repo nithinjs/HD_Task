@@ -25,19 +25,26 @@ pipeline {
       steps {
         echo "🚦 Smoke-testing the container…"
         sh """
-          # Clean up any old smoke container
+          # clean up any old smoke container
           docker rm -f smoke || true
 
-          # Start the container (no port mapping needed)
+          # start your app (no port mapping needed for this approach)
           docker run --rm -d --name smoke $IMAGE:$TAG
 
-          # Wait for Gunicorn to start
+          # give Gunicorn a moment to spin up
           sleep 5
 
-          # Exec inside the container to hit localhost:8000
-          docker exec smoke curl --fail http://localhost:8000/ || (docker logs smoke && exit 1)
+          # use Python inside the container to hit localhost:8000
+          docker exec smoke python - << 'EOF'
+import urllib.request, sys
+try:
+    status = urllib.request.urlopen('http://localhost:8000').getcode()
+    sys.exit(0 if status == 200 else 1)
+except Exception:
+    sys.exit(1)
+EOF
 
-          # Tear down the container
+          # tear it down
           docker stop smoke || true
         """
       }
