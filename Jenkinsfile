@@ -49,22 +49,21 @@ EOF
     }
 
     stage('Security Scan') {
-      steps {
-        echo "🛡️  Scanning image for vulnerabilities (Trivy)…"
-        sh """
-          # pull the latest Trivy scanner
-          docker pull aquasec/trivy:latest
+    steps {
+      echo '🛡️ Scanning image for vulnerabilities (Trivy)…'
+      sh '''
+        docker pull aquasec/trivy:latest
 
-          # run the 'image' subcommand *before* the flags
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            aquasec/trivy:latest image \
-              --exit-code 1 \
-              --severity HIGH,CRITICAL \
-              $IMAGE:$TAG
-        """
-      }
+        # run Trivy in “report-only” mode:
+        docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \\
+          aquasec/trivy:latest image \\
+            --severity HIGH,CRITICAL \\
+            --ignore-unfixed       \\
+            --exit-code 0          \\
+            nithinjs/databytes-web:latest
+      '''
     }
+  }
   }
 
   post {

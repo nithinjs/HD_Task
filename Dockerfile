@@ -1,32 +1,29 @@
-# Use a slim Python image
-FROM python:3.9-slim
+# Use Debian Bookworm to pick up newer patched libraries
+FROM python:3.9-slim-bookworm
 
-# Don’t buffer stdout/stderr and skip writing .pyc files
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+# 1) Patch vulnerable OS packages
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      libc-bin \
+      perl-base \
+      zlib1g \
+      libsystemd0 \
+      libudev1 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# Set the working directory
+# 2) Set working dir & install Python deps
 WORKDIR /app
+COPY requirements.txt .
 
-# Install system dependencies (if you need any – e.g. libpq-dev for Postgres)
-# RUN apt-get update && apt-get install -y --no-install-recommends gcc
+# Upgrade pip and ensure setuptools is latest
+RUN pip install --upgrade pip setuptools && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Copy and install Python dependencies
-COPY requirements.txt /app/
-RUN pip install --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
-
-# Copy in the rest of the code
+# 3) Copy in your code, collect static assets
 COPY . /app/
-
-# Switch into the Django project dir
 WORKDIR /app/databytes
-
-# Collect static files
 RUN python manage.py collectstatic --noinput
 
-# Expose the port your app will run on
-EXPOSE 8000
-
-# Run with Gunicorn
+# 4) At runtime, run your web server…
 CMD ["gunicorn", "databytes.wsgi:application", "--bind", "0.0.0.0:8000"]
